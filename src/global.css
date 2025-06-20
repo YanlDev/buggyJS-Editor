@@ -1,0 +1,26 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+@import "tailwindcss";
+
+@theme {
+  /* Evangelion Color Palette - Minimalista */
+  --color-eva-lime: #8bd450;
+  --color-eva-dark: #1d1a2f;
+  --color-eva-purple: #965fd4;
+  
+  /* Grises para UI minimalista */
+  --color-eva-darker: #0a0a0f;
+  --color-eva-gray: #2a2735;
+  --color-eva-light-gray: #6b7280;
+  
+  /* Estados */
+  --color-eva-success: #8bd450;
+  --color-eva-error: #ef4444;
+  --color-eva-warning: #f59e0b;
+  
+  /* Fuentes */
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
