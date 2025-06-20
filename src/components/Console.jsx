@@ -1,4 +1,4 @@
-// src/components/Console.jsx - Con indicadores de cache inteligente
+// src/components/Console.jsx - Versión LIMPIA sin emojis molestos
 function Console({
   output,
   onClear,
@@ -10,7 +10,7 @@ function Console({
 }) {
   return (
     <div className="h-full flex flex-col">
-      {/* Header minimalista pegado al top */}
+      {/* Header limpio */}
       <div className="bg-eva-dark border-b border-eva-gray px-4 py-2 flex items-center justify-between flex-shrink-0">
         <h2 className="text-xs font-medium text-eva-light-gray flex items-center space-x-2">
           <i
@@ -25,43 +25,18 @@ function Console({
             </span>
           )}
 
-          {/* Indicador de auto-run */}
+          {/* Indicadores discretos sin texto molesto */}
           {isAutoRunning && (
             <span className="text-xs bg-eva-warning/20 text-eva-warning px-2 py-0.5 rounded flex items-center space-x-1">
               <i className="fas fa-bolt text-xs"></i>
-              <span>Auto-running...</span>
             </span>
           )}
 
           {hasAutoRunPending && !isAutoRunning && (
             <span className="text-xs bg-eva-lime/20 text-eva-lime px-2 py-0.5 rounded flex items-center space-x-1">
               <i className="fas fa-clock text-xs"></i>
-              <span>Pending...</span>
             </span>
           )}
-
-          {/* Indicador de cache decision */}
-          {lastCacheDecision &&
-            smartModeEnabled &&
-            !isRunning &&
-            !isAutoRunning && (
-              <span
-                className={`text-xs px-2 py-0.5 rounded flex items-center space-x-1 ${
-                  lastCacheDecision.shouldExecute
-                    ? "bg-eva-success/20 text-eva-success"
-                    : "bg-eva-warning/20 text-eva-warning"
-                }`}
-              >
-                <i
-                  className={`fas ${
-                    lastCacheDecision.shouldExecute ? "fa-check" : "fa-archive"
-                  } text-xs`}
-                ></i>
-                <span className="hidden lg:inline">
-                  {lastCacheDecision.shouldExecute ? "Executed" : "Cached"}
-                </span>
-              </span>
-            )}
         </h2>
 
         {/* Botón Clear */}
@@ -76,33 +51,27 @@ function Console({
         )}
       </div>
 
-      {/* Área del console - SIN bordes ni padding extra */}
+      {/* Área del console */}
       <div className="flex-1 bg-eva-darker overflow-y-auto">
         <div className="p-4 font-mono text-sm space-y-2">
-          {/* Estado vacío */}
+          {/* Estado vacío - SIN emojis */}
           {output.length === 0 ? (
             <div className="text-eva-light-gray italic text-xs space-y-1">
-              <p>
-                <i className="fas fa-rocket text-eva-lime mr-1"></i> Run code to
-                see output...
-              </p>
+              <p>Run code to see output...</p>
               <p className="text-xs opacity-50">
                 • console.log() messages will appear here
               </p>
               <p className="text-xs opacity-50">
                 • Errors and warnings will be highlighted
               </p>
-              <p className="text-xs opacity-50">
-                • Enable Auto-Run for instant feedback
-              </p>
-              {smartModeEnabled && (
-                <p className="text-xs opacity-50 text-eva-purple">
-                  • Smart mode avoids duplicate executions
+              {isAutoRunning && (
+                <p className="text-xs opacity-50 text-eva-warning">
+                  • Auto-run is executing...
                 </p>
               )}
             </div>
           ) : (
-            /* Mostrar mensajes del output */
+            /* Mostrar mensajes del output - SIN emojis molestos */
             output.map((line) => (
               <div key={line.id} className="flex items-start space-x-3 group">
                 {/* Timestamp */}
@@ -110,7 +79,7 @@ function Console({
                   {line.timestamp}
                 </span>
 
-                {/* Icono según el tipo */}
+                {/* Icono según el tipo - SIN emojis */}
                 <span className="text-xs mt-0.5">
                   {line.type === "error" && (
                     <i className="fas fa-exclamation-circle text-eva-error"></i>
@@ -122,7 +91,7 @@ function Console({
                     <i className="fas fa-info-circle text-eva-purple"></i>
                   )}
                   {line.type === "log" && (
-                    <i className="fas fa-info-circle text-eva-success opacity-50"></i>
+                    <i className="fas fa-chevron-right text-eva-success opacity-50"></i>
                   )}
                 </span>
 
@@ -144,20 +113,20 @@ function Console({
             ))
           )}
 
-          {/* Indicador de que está ejecutando manualmente */}
+          {/* Indicador discreto de ejecución manual */}
           {isRunning && !isAutoRunning && (
             <div className="flex items-center space-x-2 text-eva-lime opacity-75">
               <i className="fas fa-spinner fa-spin text-xs"></i>
-              <span className="text-xs italic">Executing code manually...</span>
+              <span className="text-xs italic">Executing...</span>
             </div>
           )}
 
-          {/* Indicador de que está auto-ejecutando */}
+          {/* Indicador discreto de auto-ejecución */}
           {isAutoRunning && (
             <div className="flex items-center space-x-2 text-eva-warning opacity-75">
               <i className="fas fa-bolt text-xs"></i>
               <i className="fas fa-spinner fa-spin text-xs"></i>
-              <span className="text-xs italic">Auto-executing code...</span>
+              <span className="text-xs italic">Auto-running...</span>
             </div>
           )}
         </div>

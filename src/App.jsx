@@ -1,5 +1,5 @@
-// App.jsx - Con Auto-Run integrado
-import { useState } from "react";
+// App.jsx - Versión LIMPIA sin mensajes molestos
+import { useState, useEffect } from "react";
 import Editor from "./components/Editor";
 import Console from "./components/Console";
 import ResizablePanels from "./components/ResizablePanels";
@@ -20,27 +20,29 @@ function App() {
     cancelExecution,
   } = useCodeRunner();
 
-  // Hook para auto-run con cache inteligente
+  // Hook para auto-run LIMPIO (sin addOutputLine)
   const {
     isAutoRunEnabled,
     isAutoRunning,
     toggleAutoRun,
     cancelAutoRun,
     hasAutoRunPending,
-
-    // Cache inteligente
     smartModeEnabled,
     toggleSmartMode,
     lastCacheDecision,
     clearCache,
     getCacheStats,
-  } = useAutoRun(code, (code) => runCode(code, "auto"), isRunning);
+  } = useAutoRun(
+    code,
+    runCode,
+    isRunning
+    // REMOVIDO: addOutputLine para mantener console limpio
+  );
 
   /**
    * Maneja la ejecución manual del código
    */
   const handleRunCode = async () => {
-    // Cancelar cualquier auto-run pendiente
     cancelAutoRun();
     await runCode(code, "manual");
   };
@@ -50,7 +52,6 @@ function App() {
    */
   const handleCodeChange = (newCode) => {
     setCode(newCode);
-    // El auto-run se activa automáticamente via useAutoRun hook
   };
 
   /**
@@ -63,11 +64,16 @@ function App() {
     }
   };
 
-  // Agregar event listener para atajos de teclado
-  useState(() => {
+  // Event listener para atajos de teclado
+  useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [code]);
+
+  // Función para limpiar cache
+  const handleClearCache = () => {
+    clearCache();
+  };
 
   return (
     <div className="h-screen bg-eva-darker text-white font-sans flex flex-col">
@@ -84,10 +90,9 @@ function App() {
 
           {/* Pestañas de archivos */}
           <div className="flex items-center">
-            <div className="px-4 py-3 bg-eva-darker border-r  text-sm text-eva-light-gray border-b-2 border-eva-lime">
+            <div className="px-4 py-3 bg-eva-darker border-r text-sm text-eva-light-gray border-b-2 border-eva-lime">
               untitled.js
             </div>
-            {/* Botón para nueva pestaña */}
             <button className="px-3 py-3 text-eva-light-gray hover:text-eva-lime hover:bg-eva-darker/50 transition-colors text-sm">
               <i className="fas fa-plus"></i>
             </button>
@@ -155,18 +160,30 @@ function App() {
               </button>
             )}
 
-            {/* Indicador de decisión de cache */}
+            {/* Botón para limpiar cache - SIN mensajes molestos */}
+            {isAutoRunEnabled && smartModeEnabled && (
+              <button
+                onClick={handleClearCache}
+                className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray hover:text-eva-warning"
+                title="Clear execution cache"
+              >
+                <i className="fas fa-trash text-xs"></i>
+                <span className="hidden lg:inline">Clear</span>
+              </button>
+            )}
+
+            {/* Indicador silencioso de decisión de cache */}
             {lastCacheDecision && isAutoRunEnabled && smartModeEnabled && (
               <div className="text-xs text-eva-light-gray flex items-center space-x-1">
                 {lastCacheDecision.shouldExecute ? (
                   <span className="text-eva-success flex items-center space-x-1">
                     <i className="fas fa-check-circle"></i>
-                    <span className="hidden md:inline">Executed</span>
+                    <span className="hidden md:inline">Run</span>
                   </span>
                 ) : (
                   <span className="text-eva-warning flex items-center space-x-1">
                     <i className="fas fa-archive"></i>
-                    <span className="hidden md:inline">Cached</span>
+                    <span className="hidden md:inline">Cache</span>
                   </span>
                 )}
               </div>

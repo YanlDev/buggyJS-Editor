@@ -1,9 +1,6 @@
-// hooks/useCodeRunner.js - Cancelación mejorada y manejo de bucles
-import { useState, useRef } from 'react'
-
+import { useState, useRef, useCallback } from 'react'
 /**
  * Hook personalizado para ejecutar código JavaScript y capturar output
- * Incluye soporte para auto-run y cancelación REAL de ejecuciones
  */
 export function useCodeRunner() {
   const [output, setOutput] = useState([])
@@ -13,7 +10,6 @@ export function useCodeRunner() {
 
   /**
    * Genera un ID único para cada ejecución
-   * Permite cancelar ejecuciones anteriores
    */
   const generateExecutionId = () => {
     executionIdRef.current += 1
@@ -35,88 +31,86 @@ export function useCodeRunner() {
 
   /**
    * Agrega una línea al output del console
-   * @param {string} content - Contenido del mensaje
-   * @param {string} type - Tipo: 'log', 'error', 'warn'
+   * CORREGIDO: Ahora es una función estable con useCallback
    */
-  const addOutputLine = (content, type = 'log') => {
+  const addOutputLine = useCallback((content, type = 'log') => {
     const newLine = {
-      id: Date.now() + Math.random(), // ID único
+      id: Date.now() + Math.random(),
       content: String(content),
       type,
       timestamp: getTimestamp()
     }
 
     setOutput(prev => [...prev, newLine])
-  }
+    return newLine // NUEVO: Retorna la línea para tracking
+  }, [])
 
   /**
    * Limpia el output del console
    */
-  const clearOutput = () => {
+  const clearOutput = useCallback(() => {
     setOutput([])
-  }
+  }, [])
 
   /**
-   * Cancela la ejecución actual REALMENTE
+   * NUEVO: Obtiene el output actual (para cache)
    */
-  const cancelExecution = () => {
-    // Abortar el AbortController actual
+  const getCurrentOutput = useCallback(() => {
+    return [...output] // Retorna copia del output actual
+  }, [output])
+
+  /**
+   * Cancela la ejecución actual
+   */
+  const cancelExecution = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-
-    // Invalidar ID de ejecución
     generateExecutionId()
     setIsRunning(false)
-  }
+  }, [])
 
   /**
-   * Ejecuta código JavaScript de forma segura con cancelación REAL
-   * @param {string} code - Código JavaScript a ejecutar
-   * @param {string} source - Fuente: 'manual' o 'auto'
+   * CORREGIDO: Ejecuta código con mejor tracking del output
    */
-  const runCode = async (code, source = 'manual') => {
+  const runCode = useCallback(async (code, source = 'manual') => {
     if (!code.trim()) {
-      return
+      return { success: false, output: [], reason: 'Empty code' }
     }
 
-    // CANCELAR cualquier ejecución anterior ANTES de empezar
+    // Cancelar ejecución anterior
     cancelExecution()
 
-    // Generar ID para esta ejecución
     const currentExecutionId = generateExecutionId()
-
-    // Crear nuevo AbortController para esta ejecución
     abortControllerRef.current = new AbortController()
     const signal = abortControllerRef.current.signal
 
     setIsRunning(true)
 
+    // NUEVO: Capturar output antes de la ejecución
+    const outputBefore = getCurrentOutput()
+    const capturedLogs = []
+
     try {
-      // Verificar si fue abortada antes de empezar
       if (signal.aborted) {
-        return
+        return { success: false, output: [], reason: 'Aborted before execution' }
       }
 
-      // Crear un contexto aislado para la ejecución
-      const capturedLogs = []
       let logCount = 0
-      const MAX_LOGS = 1000 // Límite para evitar spam
+      const MAX_LOGS = 1000
 
-      // Interceptar console con límites y cancelación
+      // Console interceptor mejorado
       const mockConsole = {
         log: (...args) => {
-          // Verificar si fue cancelada
-          if (signal.aborted || currentExecutionId !== executionIdRef.current) {
-            return
-          }
+          if (signal.aborted || currentExecutionId !== executionIdRef.current) return
 
           logCount++
           if (logCount > MAX_LOGS) {
-            capturedLogs.push({
-              content: `[MAX LOGS REACHED] Output truncated after ${MAX_LOGS} messages`,
-              type: 'warn'
-            })
+            const warningLine = addOutputLine(
+              `[MAX LOGS REACHED] Output truncated after ${MAX_LOGS} messages`,
+              'warn'
+            )
+            capturedLogs.push(warningLine)
             return
           }
 
@@ -131,120 +125,120 @@ export function useCodeRunner() {
             return String(arg)
           }).join(' ')
 
-          capturedLogs.push({ content: message, type: 'log' })
+          const line = addOutputLine(message, 'log')
+          capturedLogs.push(line)
         },
 
         error: (...args) => {
           if (signal.aborted || currentExecutionId !== executionIdRef.current) return
           const message = args.map(arg => String(arg)).join(' ')
-          capturedLogs.push({ content: message, type: 'error' })
+          const line = addOutputLine(message, 'error')
+          capturedLogs.push(line)
         },
 
         warn: (...args) => {
           if (signal.aborted || currentExecutionId !== executionIdRef.current) return
           const message = args.map(arg => String(arg)).join(' ')
-          capturedLogs.push({ content: message, type: 'warn' })
+          const line = addOutputLine(message, 'warn')
+          capturedLogs.push(line)
         },
 
         info: (...args) => {
           if (signal.aborted || currentExecutionId !== executionIdRef.current) return
-          capturedLogs.push({
-            content: args.map(arg => String(arg)).join(' '),
-            type: 'log'
-          })
+          const message = args.map(arg => String(arg)).join(' ')
+          const line = addOutputLine(message, 'info')
+          capturedLogs.push(line)
         },
 
         clear: () => {
           if (signal.aborted || currentExecutionId !== executionIdRef.current) return
           clearOutput()
+          capturedLogs.length = 0 // Limpiar logs capturados también
         }
       }
 
-      // Verificar cancelación antes de ejecutar
-      if (signal.aborted || currentExecutionId !== executionIdRef.current) {
-        setIsRunning(false)
-        return
-      }
+      // Ejecutar con timeout
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Code execution timeout (5 seconds)'))
+        }, 5000)
 
-      // Ejecutar con timeout para evitar bucles infinitos
-      const executeWithTimeout = () => {
-        return new Promise((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error('Code execution timeout (5 seconds)'))
-          }, 5000) // 5 segundos timeout
-
-          try {
-            // Verificar cancelación una vez más
-            if (signal.aborted || currentExecutionId !== executionIdRef.current) {
-              clearTimeout(timeoutId)
-              resolve()
-              return
-            }
-
-            // Envolver código con try-catch y verificación de cancelación
-            const wrappedCode = `
-              (function() {
-                try {
-                  ${code}
-                } catch (error) {
-                  console.error('Runtime Error: ' + error.message)
-                }
-              })()
-            `
-
-            // Ejecutar usando Function constructor (más seguro que eval)
-            const executor = new Function('console', wrappedCode)
-            executor(mockConsole)
-
+        try {
+          if (signal.aborted || currentExecutionId !== executionIdRef.current) {
             clearTimeout(timeoutId)
             resolve()
-          } catch (error) {
-            clearTimeout(timeoutId)
-            reject(error)
+            return
           }
-        })
-      }
 
-      // Ejecutar con timeout
-      await executeWithTimeout()
+          const wrappedCode = `
+            (function() {
+              try {
+                ${code}
+              } catch (error) {
+                console.error('Runtime Error: ' + error.message)
+              }
+            })()
+          `
+
+          const executor = new Function('console', wrappedCode)
+          executor(mockConsole)
+
+          clearTimeout(timeoutId)
+          resolve()
+        } catch (error) {
+          clearTimeout(timeoutId)
+          reject(error)
+        }
+      })
 
       // Verificar si fue cancelada después de la ejecución
       if (signal.aborted || currentExecutionId !== executionIdRef.current) {
         setIsRunning(false)
-        return
+        return { success: false, output: capturedLogs, reason: 'Execution cancelled' }
       }
 
-      // Agregar los logs capturados al output EN TIEMPO REAL
-      capturedLogs.forEach(log => {
-        // Verificar antes de cada log
-        if (!signal.aborted && currentExecutionId === executionIdRef.current) {
-          addOutputLine(log.content, log.type)
-        }
-      })
-
-      // Si no hay output visible, mostrar mensaje de éxito solo para ejecuciones manuales
+      // Mostrar mensaje de éxito solo para ejecuciones manuales sin output
       if (capturedLogs.length === 0 && source === 'manual') {
-        if (!signal.aborted && currentExecutionId === executionIdRef.current) {
-          addOutputLine('Code executed successfully (no output)', 'log')
-        }
+        const successLine = addOutputLine('Code executed successfully (no output)', 'info')
+        capturedLogs.push(successLine)
       }
+
+      // NUEVO: Retornar información completa de la ejecución
+      const executionResult = {
+        success: true,
+        output: capturedLogs,
+        outputBefore,
+        outputAfter: getCurrentOutput(),
+        source,
+        timestamp: Date.now()
+      }
+
+      return executionResult
 
     } catch (error) {
-      // Solo mostrar errores si no fue cancelada la ejecución
       if (!signal.aborted && currentExecutionId === executionIdRef.current) {
+        let errorLine
         if (error.message.includes('timeout')) {
-          addOutputLine('⚠️ Execution stopped: Code took too long (5s timeout)', 'warn')
+          errorLine = addOutputLine('⚠️ Execution stopped: Code took too long (5s timeout)', 'warn')
         } else {
-          addOutputLine(`Execution Error: ${error.message}`, 'error')
+          errorLine = addOutputLine(`Execution Error: ${error.message}`, 'error')
         }
+        capturedLogs.push(errorLine)
+      }
+
+      return {
+        success: false,
+        output: capturedLogs,
+        error: error.message,
+        source,
+        timestamp: Date.now()
       }
     } finally {
-      // Solo cambiar estado si esta ejecución sigue siendo la actual
       if (!signal.aborted && currentExecutionId === executionIdRef.current) {
         setIsRunning(false)
       }
     }
-  }
+  }, [addOutputLine, clearOutput, getCurrentOutput, cancelExecution])
 
   return {
     // Estado
@@ -252,9 +246,13 @@ export function useCodeRunner() {
     isRunning,
     hasOutput: output.length > 0,
 
-    // Funciones
+    // Funciones principales
     runCode,
     clearOutput,
-    cancelExecution
+    cancelExecution,
+
+    // NUEVO: Funciones para integración con auto-run
+    addOutputLine,
+    getCurrentOutput
   }
 }
