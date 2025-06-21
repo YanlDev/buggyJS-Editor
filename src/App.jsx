@@ -1,50 +1,31 @@
-// App.jsx - Versión LIMPIA sin mensajes molestos
 import { useState, useEffect } from "react";
 import Editor from "./components/Editor";
 import Console from "./components/Console";
 import ResizablePanels from "./components/ResizablePanels";
-import { useCodeRunner } from "./hooks/useCodeRunner";
-import { useAutoRun } from "./hooks/useAutoRun";
+import { useIncrementalRunner } from "./hooks/useIncrementalRunner";
 
 function App() {
   // Estado del código en el editor
   const [code, setCode] = useState('console.log("¡Bienvenido a BuggyJS!");');
 
-  // Hook para ejecutar código
+  // Hook incremental limpio
   const {
     output,
     isRunning,
-    hasOutput,
-    runCode,
-    clearOutput,
-    cancelExecution,
-  } = useCodeRunner();
-
-  // Hook para auto-run LIMPIO (sin addOutputLine)
-  const {
     isAutoRunEnabled,
-    isAutoRunning,
+    hasOutput,
+    runIncremental,
+    triggerAutoRun,
+    clearOutput,
+    resetContext,
     toggleAutoRun,
-    cancelAutoRun,
-    hasAutoRunPending,
-    smartModeEnabled,
-    toggleSmartMode,
-    lastCacheDecision,
-    clearCache,
-    getCacheStats,
-  } = useAutoRun(
-    code,
-    runCode,
-    isRunning
-    // REMOVIDO: addOutputLine para mantener console limpio
-  );
+  } = useIncrementalRunner();
 
   /**
    * Maneja la ejecución manual del código
    */
   const handleRunCode = async () => {
-    cancelAutoRun();
-    await runCode(code, "manual");
+    await runIncremental(code, true); // true = manual (ejecuta todo)
   };
 
   /**
@@ -52,6 +33,11 @@ function App() {
    */
   const handleCodeChange = (newCode) => {
     setCode(newCode);
+
+    // Auto-run automático si está habilitado
+    if (isAutoRunEnabled) {
+      triggerAutoRun(newCode);
+    }
   };
 
   /**
@@ -70,14 +56,17 @@ function App() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [code]);
 
-  // Función para limpiar cache
-  const handleClearCache = () => {
-    clearCache();
+  /**
+   * Limpia output y resetea contexto
+   */
+  const handleClearAll = () => {
+    clearOutput();
+    resetContext();
   };
 
   return (
     <div className="h-screen bg-eva-darker text-white font-sans flex flex-col">
-      {/* Header principal */}
+      {/* Header simplificado */}
       <header className="bg-eva-dark border-b border-eva-gray flex items-center justify-between flex-shrink-0">
         {/* Lado izquierdo: Logo + Pestañas */}
         <div className="flex items-center">
@@ -99,7 +88,7 @@ function App() {
           </div>
         </div>
 
-        {/* Lado derecho: Controles */}
+        {/* Lado derecho: Controles simplificados */}
         <div className="flex items-center space-x-3 px-4">
           {/* Info del lenguaje */}
           <div className="flex items-center space-x-2 text-xs text-eva-light-gray">
@@ -110,7 +99,7 @@ function App() {
             <span title="Press Ctrl+Enter to run code">Ctrl+Enter</span>
           </div>
 
-          {/* Toggle Auto-Run */}
+          {/* Toggle Auto-Run simple */}
           <div className="flex items-center space-x-2 border-l border-eva-gray pl-3">
             <span className="text-xs text-eva-light-gray">Auto-Run:</span>
             <button
@@ -128,67 +117,18 @@ function App() {
                 }`}
               ></i>
               <span>{isAutoRunEnabled ? "ON" : "OFF"}</span>
-              {/* Indicador de auto-running */}
-              {isAutoRunning && (
-                <i className="fas fa-spinner fa-spin text-eva-warning ml-1"></i>
-              )}
             </button>
-
-            {/* Toggle Smart Mode */}
-            {isAutoRunEnabled && (
-              <button
-                onClick={toggleSmartMode}
-                className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all ${
-                  smartModeEnabled
-                    ? "bg-eva-purple/20 text-eva-purple border border-eva-purple/30"
-                    : "bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray"
-                }`}
-                title={`Smart mode: ${
-                  smartModeEnabled
-                    ? "Avoid duplicate executions"
-                    : "Always execute"
-                }`}
-              >
-                <i
-                  className={`fas fa-brain ${
-                    smartModeEnabled ? "text-eva-purple" : "text-eva-light-gray"
-                  }`}
-                ></i>
-                <span className="hidden sm:inline">
-                  {smartModeEnabled ? "Smart" : "Basic"}
-                </span>
-              </button>
-            )}
-
-            {/* Botón para limpiar cache - SIN mensajes molestos */}
-            {isAutoRunEnabled && smartModeEnabled && (
-              <button
-                onClick={handleClearCache}
-                className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray hover:text-eva-warning"
-                title="Clear execution cache"
-              >
-                <i className="fas fa-trash text-xs"></i>
-                <span className="hidden lg:inline">Clear</span>
-              </button>
-            )}
-
-            {/* Indicador silencioso de decisión de cache */}
-            {lastCacheDecision && isAutoRunEnabled && smartModeEnabled && (
-              <div className="text-xs text-eva-light-gray flex items-center space-x-1">
-                {lastCacheDecision.shouldExecute ? (
-                  <span className="text-eva-success flex items-center space-x-1">
-                    <i className="fas fa-check-circle"></i>
-                    <span className="hidden md:inline">Run</span>
-                  </span>
-                ) : (
-                  <span className="text-eva-warning flex items-center space-x-1">
-                    <i className="fas fa-archive"></i>
-                    <span className="hidden md:inline">Cache</span>
-                  </span>
-                )}
-              </div>
-            )}
           </div>
+
+          {/* Botón Clear Context */}
+          <button
+            onClick={handleClearAll}
+            className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray hover:text-eva-warning"
+            title="Clear output and reset variables"
+          >
+            <i className="fas fa-broom text-xs"></i>
+            <span className="hidden lg:inline">Reset</span>
+          </button>
 
           {/* Botón Run Manual */}
           <button
@@ -199,7 +139,7 @@ function App() {
                 ? "bg-eva-light-gray text-eva-gray cursor-not-allowed"
                 : "bg-eva-lime hover:bg-eva-lime/90 text-eva-dark hover:scale-105"
             }`}
-            title="Run code manually (Ctrl+Enter)"
+            title="Run all code manually (Ctrl+Enter)"
           >
             <i
               className={`fas ${
@@ -231,10 +171,7 @@ function App() {
             output={output}
             onClear={clearOutput}
             isRunning={isRunning}
-            isAutoRunning={isAutoRunning}
-            hasAutoRunPending={hasAutoRunPending}
-            lastCacheDecision={lastCacheDecision}
-            smartModeEnabled={smartModeEnabled}
+            isAutoRunEnabled={isAutoRunEnabled}
           />
         </ResizablePanels>
       </div>
