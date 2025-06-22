@@ -1,18 +1,33 @@
 import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { useRef } from "react";
 
-function Editor({ value, onChange, onRun, onMonacoMount }) {
+function Editor({ value, onChange, onRun, onClear, onMonacoMount }) {
   const editorRef = useRef(null);
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
 
-
     if (onMonacoMount) {
       onMonacoMount(monaco);
     }
 
+    // 🎯 SHORTCUTS PERSONALIZADOS
 
+    // Ctrl+Enter: Ejecutar código
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      if (onRun) {
+        onRun();
+      }
+    });
+
+    // Ctrl+Delete: Limpiar consola
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Delete, () => {
+      if (onClear) {
+        onClear();
+      }
+    });
+
+    // 🎯 AUTOCOMPLETADO Y SNIPPETS
     monaco.languages.registerCompletionItemProvider("javascript", {
       provideCompletionItems: (model, position) => {
         const word = model.getWordUntilPosition(position);
@@ -100,20 +115,6 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
               detail: "for (const key in object)",
               range: range,
             },
-            {
-              label: "while",
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: [
-                "while (${1:condition}) {",
-                "\t${2:// código}",
-                "}",
-              ].join("\n"),
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "While loop",
-              detail: "while (condition)",
-              range: range,
-            },
 
             // 🎯 FUNCIONES
             {
@@ -143,6 +144,40 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
               range: range,
             },
 
+            // 🎯 ASYNC/AWAIT
+            {
+              label: "async",
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: [
+                "async function ${1:nombre}() {",
+                "\ttry {",
+                "\t\t${2:// código}",
+                "\t} catch (error) {",
+                "\t\tconsole.error(error);",
+                "\t}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Async function con try/catch",
+              detail: "async function with error handling",
+              range: range,
+            },
+            {
+              label: "fetch",
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: [
+                "const respuesta = await fetch('${1:url}');",
+                "const datos = await respuesta.json();",
+                "console.log(datos);",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Fetch API básico",
+              detail: "fetch with await",
+              range: range,
+            },
+
             // 🎯 ESTRUCTURAS DE DATOS
             {
               label: "arr",
@@ -169,39 +204,7 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
               range: range,
             },
 
-            // 🎯 CONDICIONALES
-            {
-              label: "if",
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: [
-                "if (${1:condition}) {",
-                "\t${2:// código}",
-                "}",
-              ].join("\n"),
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "If statement",
-              detail: "if (condition)",
-              range: range,
-            },
-            {
-              label: "ifelse",
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: [
-                "if (${1:condition}) {",
-                "\t${2:// código}",
-                "} else {",
-                "\t${3:// código alternativo}",
-                "}",
-              ].join("\n"),
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: "If...else statement",
-              detail: "if (condition) { } else { }",
-              range: range,
-            },
-
-            // 🎯 MÉTODOS DE ARRAY COMUNES
+            // 🎯 MÉTODOS DE ARRAY
             {
               label: "map",
               kind: monaco.languages.CompletionItemKind.Snippet,
@@ -227,7 +230,7 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
       },
     });
 
-    // Configuración JavaScript (igual que antes)
+    // Configuración JavaScript
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ES2020,
       allowNonTsExtensions: true,
@@ -244,37 +247,10 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
       noSuggestionDiagnostics: false,
     });
 
-    // Shortcut Ctrl+Enter (igual que antes)
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      if (onRun) {
-        onRun();
-      }
-    });
-
-    // 🎯 NUEVOS SHORTCUTS EN EL EDITOR
-    // Ctrl+/ para comentar/descomentar
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
-      editor.trigger("keyboard", "editor.action.commentLine", {});
-    });
-
-    // Ctrl+D para duplicar línea
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
-      editor.trigger("keyboard", "editor.action.copyLinesDownAction", {});
-    });
-
-    // Alt+Up/Down para mover líneas
-    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
-      editor.trigger("keyboard", "editor.action.moveLinesUpAction", {});
-    });
-
-    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
-      editor.trigger("keyboard", "editor.action.moveLinesDownAction", {});
-    });
-
     editor.focus();
   };
 
-  // Opciones del editor (mejoradas)
+  // Opciones del editor
   const editorOptions = {
     fontSize: 14,
     fontFamily: "JetBrains Mono, Fira Code, SF Mono, monospace",
@@ -285,7 +261,6 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
     wordWrap: "on",
     lineNumbers: "on",
     folding: true,
-    // 🎯 MEJORAR AUTOCOMPLETADO
     suggestOnTriggerCharacters: true,
     acceptSuggestionOnEnter: "on",
     tabCompletion: "on",
@@ -294,19 +269,16 @@ function Editor({ value, onChange, onRun, onMonacoMount }) {
       comments: false,
       strings: true,
     },
-    quickSuggestionsDelay: 100, // Más rápido
-    // 🎯 MEJORAR FORMATO
+    quickSuggestionsDelay: 100,
     formatOnPaste: true,
     formatOnType: true,
     autoIndent: "full",
-    // 🎯 MEJORAR UX
     multiCursorModifier: "ctrlCmd",
     selectionHighlight: true,
     occurrencesHighlight: true,
     smoothScrolling: true,
     cursorSmoothCaretAnimation: true,
-    // 🎯 SNIPPETS
-    snippetSuggestions: "top", // Mostrar snippets primero
+    snippetSuggestions: "top",
     tabIndex: 0,
   };
 

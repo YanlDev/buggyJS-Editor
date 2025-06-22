@@ -3,8 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 export function useCleanRunner() {
   const [outputLines, setOutputLines] = useState({})
   const [isRunning, setIsRunning] = useState(false)
-  const timeoutRef = useRef(null) // Referencia para el timeout
-
+  const timeoutRef = useRef(null) 
   /**
    * Función principal que ejecuta código con contexto completo
    * Incluye fetch, Promise, setTimeout y todas las APIs del navegador
@@ -17,7 +16,6 @@ export function useCleanRunner() {
 
     setIsRunning(true)
 
-    // 🛡️ TIMEOUT AUTOMÁTICO PARA PREVENIR BUCLES INFINITOS
     const EXECUTION_TIMEOUT = 15000; // 🔧 AUMENTADO A 15 segundos para APIs
     let isTimedOut = false;
 
@@ -27,7 +25,7 @@ export function useCleanRunner() {
         1: {
           id: 'timeout-error',
           lineNumber: 1,
-          content: '⏰ Ejecución cancelada automáticamente: Timeout de 15 segundos excedido (posible bucle infinito)',
+          content: 'Ejecución cancelada automáticamente: Timeout de 15 segundos excedido (posible bucle infinito)',
           type: 'error',
           timestamp: new Date().toLocaleTimeString('es-ES', {
             hour12: false,
@@ -85,7 +83,7 @@ export function useCleanRunner() {
 
           consoleOutputs.push(output);
 
-          // 🔥 ACTUALIZAR UI INMEDIATAMENTE
+          // ACTUALIZAR UI INMEDIATAMENTE
           updateOutputsInRealTime();
         },
 
@@ -147,22 +145,18 @@ export function useCleanRunner() {
         }
       }
 
-      /**
-      * 🔧 NUEVA VERSIÓN: Captura objetos RAW sin stringify
-      * Para que el console expandible pueda trabajar con objetos reales
-      */
       function formatOutput(args) {
-        // 🎯 Si solo hay un argumento y es un objeto/array, devolverlo raw
+        // Si solo hay un argumento y es un objeto/array, devolverlo raw
         if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
           return args[0]; // Objeto crudo para el console expandible
         }
 
-        // 🎯 Si hay múltiples argumentos con texto + objeto
+        // Si hay múltiples argumentos con texto + objeto
         if (args.length === 2 && typeof args[0] === 'string' && typeof args[1] === 'object' && args[1] !== null) {
           return `${args[0]} ${JSON.stringify(args[1], null, 2)}`;
         }
 
-        // 🎯 Para otros casos, mantener comportamiento original
+        // Para otros casos, mantener comportamiento original
         return args.map((arg, index) => {
           if (typeof arg === 'string') {
             return arg;
@@ -195,7 +189,6 @@ export function useCleanRunner() {
       // 🔧 VERSIÓN MEJORADA PARA ASYNC/AWAIT
       if (codeToExecute.trim() && !isTimedOut) {
         try {
-          // 🎯 CREAR FUNCIÓN CON ACCESO A TODAS LAS APIs DEL NAVEGADOR
           const executeFunction = new Function(
             'console',           // Console personalizado
             'fetch',             // API fetch del navegador
@@ -214,13 +207,12 @@ export function useCleanRunner() {
             'Boolean',           // Boolean constructor
             'Error',             // Error constructor
             'RegExp',            // RegExp para expresiones regulares
-            // 🔧 WRAPPER MEJORADO PARA CÓDIGO DEL USUARIO CON MANEJO DE ASYNC
             `
             return (async () => {
               try {
                 ${codeToExecute}
                 
-                // 🕐 ESPERAR UN POCO MÁS para operaciones async pendientes
+                //ESPERAR UN POCO MÁS para operaciones async pendientes
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
               } catch (error) {
@@ -231,7 +223,6 @@ export function useCleanRunner() {
             `
           );
 
-          // 🚀 EJECUTAR Y ESPERAR A QUE TERMINE COMPLETAMENTE
           await executeFunction(
             captureConsole,                      // Tu console personalizado
             window.fetch?.bind(window),          // fetch real del navegador
@@ -311,7 +302,6 @@ export function useCleanRunner() {
    */
   const clearOutput = useCallback(() => {
     setOutputLines({})
-    // 🛡️ Limpiar timeout si existe
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -322,7 +312,6 @@ export function useCleanRunner() {
    */
   const resetContext = useCallback(() => {
     setOutputLines({})
-    // 🛡️ Limpiar timeout si existe
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }

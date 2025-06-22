@@ -14,13 +14,8 @@ function App() {
   // Hooks
   const { runCode, output, isRunning, hasOutput, clearOutput, resetContext } =
     useCleanRunner();
-  const {
-    currentTheme,
-    currentThemeData,
-    changeTheme,
-    registerMonaco,
-    cycleTheme,
-  } = useTheme();
+  const { currentTheme, currentThemeData, changeTheme, registerMonaco } =
+    useTheme();
 
   /**
    * Maneja la ejecución manual del código
@@ -44,31 +39,10 @@ function App() {
   };
 
   /**
-   * 🎯 SHORTCUTS GLOBALES DE LA APLICACIÓN
+   * 🎯 SHORTCUTS MÍNIMOS GLOBALES (solo para cuando no está en el editor)
    */
   const handleGlobalKeyDown = (e) => {
-    // Ctrl+Enter: Ejecutar código
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      handleRunCode();
-      return;
-    }
-
-    // Ctrl+Backspace: Limpiar consola
-    if ((e.ctrlKey || e.metaKey) && e.key === "Backspace") {
-      e.preventDefault();
-      clearOutput();
-      return;
-    }
-
-    // Ctrl+K: Limpiar consola (alternativo)
-    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-      e.preventDefault();
-      clearOutput();
-      return;
-    }
-
-    // Escape: Cancelar ejecución si está corriendo O cerrar theme selector
+    // Solo manejar Escape para cerrar theme selector
     if (e.key === "Escape") {
       e.preventDefault();
       if (isThemeSelectorOpen) {
@@ -78,11 +52,11 @@ function App() {
     }
   };
 
-  // Event listener para shortcuts globales
+  // Event listener solo para Escape
   useEffect(() => {
     document.addEventListener("keydown", handleGlobalKeyDown);
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [code, isRunning, isThemeSelectorOpen]); // Agregamos isThemeSelectorOpen a dependencias
+  }, [isThemeSelectorOpen]);
 
   return (
     <div
@@ -98,7 +72,7 @@ function App() {
         }}
       >
         <div className="flex items-center">
-          {/* Logo con más presencia de colores del tema */}
+          {/* Logo */}
           <div
             className="px-4 py-3 flex items-center space-x-3 border-r theme-transition"
             style={{ borderColor: "var(--border-subtle)" }}
@@ -142,7 +116,7 @@ function App() {
 
         {/* Lado derecho: Info con shortcuts */}
         <div className="flex items-center space-x-4 px-4">
-          {/* Info del lenguaje con shortcuts */}
+          {/* 🎯 SHORTCUTS SIMPLES */}
           <div
             className="flex items-center space-x-2 text-xs theme-transition"
             style={{ color: "var(--color-gray-light)" }}
@@ -150,10 +124,10 @@ function App() {
             <span style={{ color: "var(--theme-primary)" }}>•</span>
             <span title="Ejecutar código">Ctrl+Enter</span>
             <span style={{ color: "var(--theme-primary)" }}>•</span>
-            <span title="Limpiar consola">Ctrl+⌫</span>
+            <span title="Limpiar consola">Ctrl+Del</span>
           </div>
 
-          {/* Botón Run con más estilo */}
+          {/* Botón Run */}
           <button
             onClick={handleRunCode}
             disabled={isRunning}
@@ -162,7 +136,7 @@ function App() {
                 ? "bg-green-600 opacity-50 cursor-not-allowed"
                 : "bg-green-600 hover:scale-105"
             }`}
-            title="Run code (Ctrl+Enter)"
+            title="Ejecutar código (Ctrl+Enter)"
           >
             <i
               className={`fas ${
@@ -185,7 +159,7 @@ function App() {
                   ? "var(--border-subtle)"
                   : "transparent",
               }}
-              title="Configuración y temas (Ctrl+T para cambiar)"
+              title="Configuración y temas"
             >
               <i
                 className={`fas fa-cog text-sm ${
@@ -211,8 +185,9 @@ function App() {
           <Editor
             value={code}
             onChange={handleCodeChange}
-            onRun={handleRunCode}
-            onMonacoMount={registerMonaco} // 🎨 Pasamos la función para registrar Monaco
+            onRun={handleRunCode} 
+            onClear={clearOutput}
+            onMonacoMount={registerMonaco}
           />
           <ExpandableConsole
             output={output}
