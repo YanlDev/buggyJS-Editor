@@ -1,0 +1,173 @@
+:root {
+
+  --theme-primary: #ff7edb;
+  --theme-secondary: #72f1b8;
+  --theme-background: #241b2f;
+  --theme-accent: #ffc600;
+  
+  /* 🎯 Variables específicas para la consola */
+  --console-bg: var(--theme-background);
+  --console-text: #ffffff;
+  --console-success: var(--theme-secondary);
+  --console-error: #ef4444;
+  --console-warning: var(--theme-accent);
+  --console-info: var(--theme-primary);
+  --console-border: var(--theme-primary);
+  
+  /* 🎨 Bordes sutiles - niveles de transparencia */
+  --border-subtle: rgba(255, 126, 219, 0.15);   /* Muy sutil */
+  --border-medium: rgba(255, 126, 219, 0.30);   /* Medio */
+  --border-strong: rgba(255, 126, 219, 0.50);   /* Fuerte */
+  
+  /* Gradientes dinámicos basados en el tema */
+  --theme-gradient-primary: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));
+  --theme-gradient-bg: linear-gradient(180deg, var(--theme-background), rgba(0,0,0,0.8));
+}
+
+/* 🌈 Clases utilitarias para usar colores de tema */
+.theme-text-primary { color: var(--theme-primary) !important; }
+.theme-text-secondary { color: var(--theme-secondary) !important; }
+.theme-text-accent { color: var(--theme-accent) !important; }
+.theme-bg-primary { background-color: var(--theme-primary) !important; }
+.theme-bg-secondary { background-color: var(--theme-secondary) !important; }
+.theme-bg-accent { background-color: var(--theme-accent) !important; }
+
+/* 🎯 Animaciones para transiciones de tema */
+.theme-transition {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 🔥 Efectos especiales para el tema Synthwave */
+.synthwave-glow {
+  text-shadow: 0 0 10px var(--theme-primary), 0 0 20px var(--theme-primary), 0 0 30px var(--theme-primary);
+}
+
+.synthwave-border {
+  border: 1px solid var(--theme-primary);
+  box-shadow: 0 0 10px var(--theme-primary)33;
+}
+
+/* 🎨 Scrollbar personalizado que se adapta al tema */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--theme-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-secondary);
+}
+
+/* 🌟 Animación de aparición para el theme selector */
+.theme-selector-enter {
+  animation: themeSlideIn 0.2s ease-out;
+}
+
+@keyframes themeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 🎭 Efectos hover que se adaptan al tema */
+.theme-hover:hover {
+  color: var(--theme-primary) !important;
+  transition: color 0.2s ease;
+}
+
+.theme-button {
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary));
+  color: var(--theme-background);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.theme-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--theme-primary)40;
+}
+
+/* 🌊 Efectos de ondas para feedback visual */
+.theme-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--theme-primary);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  opacity: 0.3;
+  z-index: 0;
+}
+
+.theme-ripple:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 🎯 Indicadores de estado con colores de tema */
+.theme-status-success { 
+  background: var(--theme-secondary); 
+  color: var(--theme-background);
+}
+
+.theme-status-warning { 
+  background: var(--theme-accent); 
+  color: var(--theme-background);
+}
+
+.theme-status-error { 
+  background: #ef4444; 
+  color: white;
+}
+
+/* 🌈 Efectos de resplandor para elementos importantes */
+.theme-glow {
+  box-shadow: 0 0 20px var(--theme-primary)20;
+}
+
+.theme-glow:hover {
+  box-shadow: 0 0 30px var(--theme-primary)40;
+}
+
+/* 📱 Responsive adjustments */
+@media (max-width: 768px) {
+  .theme-selector-enter {
+    animation: themeSlideInMobile 0.2s ease-out;
+  }
+  
+  @keyframes themeSlideInMobile {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

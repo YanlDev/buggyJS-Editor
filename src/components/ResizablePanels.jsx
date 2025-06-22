@@ -50,24 +50,54 @@ export const ResizablePanels = ({ children }) => {
   return (
     <div ref={containerRef} className="flex h-full">
       {/* Panel izquierdo */}
-      <div style={{ width: `${leftWidth}%` }} className="bg-eva-dark">
+      <div
+        style={{
+          width: `${leftWidth}%`,
+          backgroundColor: "var(--color-background)",
+        }}
+        className="theme-transition"
+      >
         {children[0]}
       </div>
 
       {/* Divisor redimensionable */}
       <div
-        className={`w-1 bg-eva-gray hover:bg-eva-lime cursor-col-resize transition-colors duration-200 ${
-          isDragging ? "bg-eva-lime" : ""
+        className={`w-1 cursor-col-resize transition-all duration-200 theme-transition ${
+          isDragging ? "theme-glow" : ""
         }`}
+        style={{
+          backgroundColor: isDragging
+            ? "var(--color-secondary)"
+            : "var(--color-gray)",
+        }}
         onMouseDown={startResize}
+        onMouseEnter={(e) => {
+          if (!isDragging) {
+            e.currentTarget.style.backgroundColor = "var(--color-secondary)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isDragging) {
+            e.currentTarget.style.backgroundColor = "var(--color-gray)";
+          }
+        }}
       >
         <div className="w-full h-full flex items-center justify-center">
-          <div className="w-0.5 h-8 bg-eva-light-gray rounded-full opacity-50"></div>
+          <div
+            className="w-0.5 h-8 rounded-full opacity-50"
+            style={{ backgroundColor: "var(--color-gray-light)" }}
+          ></div>
         </div>
       </div>
 
       {/* Panel derecho */}
-      <div style={{ width: `${100 - leftWidth}%` }} className="bg-eva-gray">
+      <div
+        style={{
+          width: `${100 - leftWidth}%`,
+          backgroundColor: "var(--color-gray)",
+        }}
+        className="theme-transition"
+      >
         {children[1]}
       </div>
     </div>

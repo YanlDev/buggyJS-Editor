@@ -1,237 +1,230 @@
-// En Editor.jsx - Configuración de snippets
 import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { useRef } from "react";
 
-function Editor({ value, onChange, onRun }) {
+function Editor({ value, onChange, onRun, onMonacoMount }) {
   const editorRef = useRef(null);
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
 
-    // Tema personalizado (igual que antes)
-    monaco.editor.defineTheme("evangelion", {
-      base: "vs-dark",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "6b7280", fontStyle: "italic" },
-        { token: "keyword", foreground: "8bd450", fontStyle: "bold" },
-        { token: "string", foreground: "965fd4" },
-        { token: "number", foreground: "8bd450" },
-        { token: "function", foreground: "8bd450" },
-        { token: "variable", foreground: "ffffff" },
-      ],
-      colors: {
-        "editor.background": "#1a1a2e",
-        "editor.foreground": "#ffffff",
-        "editor.lineHighlightBackground": "#25253d",
-        "editor.selectionBackground": "#3d3d5c",
-        "editorCursor.foreground": "#8bd450",
-        "editorLineNumber.foreground": "#6b7280",
-        "editorLineNumber.activeForeground": "#8bd450",
-        "editorGutter.background": "#1a1a2e",
-        "editor.selectionHighlightBackground": "#3d3d5c50",
-      },
-    });
 
-    monaco.editor.setTheme("evangelion");
+    if (onMonacoMount) {
+      onMonacoMount(monaco);
+    }
 
-    // 🎯 REGISTRAR SNIPPETS PERSONALIZADOS
-    monaco.languages.registerCompletionItemProvider('javascript', {
+
+    monaco.languages.registerCompletionItemProvider("javascript", {
       provideCompletionItems: (model, position) => {
         const word = model.getWordUntilPosition(position);
         const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
           startColumn: word.startColumn,
-          endColumn: word.endColumn
+          endColumn: word.endColumn,
         };
 
         return {
           suggestions: [
             // 🎯 CONSOLE.LOG SHORTCUTS
             {
-              label: 'clg',
+              label: "clg",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: 'console.log(${1});',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Console.log shortcut',
-              detail: 'console.log()',
-              range: range
+              insertText: "console.log(${1});",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Console.log shortcut",
+              detail: "console.log()",
+              range: range,
             },
             {
-              label: 'cle',
+              label: "cle",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: 'console.error(${1});',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Console.error shortcut',
-              detail: 'console.error()',
-              range: range
+              insertText: "console.error(${1});",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Console.error shortcut",
+              detail: "console.error()",
+              range: range,
             },
             {
-              label: 'clw',
+              label: "clw",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: 'console.warn(${1});',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Console.warn shortcut',
-              detail: 'console.warn()',
-              range: range
+              insertText: "console.warn(${1});",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Console.warn shortcut",
+              detail: "console.warn()",
+              range: range,
             },
 
             // 🎯 BUCLES
             {
-              label: 'for',
+              label: "for",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'for (let ${1:i} = 0; ${1:i} < ${2:array}.length; ${1:i}++) {',
-                '\t${3:// código}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'For loop básico',
-              detail: 'for (let i = 0; i < array.length; i++)',
-              range: range
+                "for (let ${1:i} = 0; ${1:i} < ${2:array}.length; ${1:i}++) {",
+                "\t${3:// código}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "For loop básico",
+              detail: "for (let i = 0; i < array.length; i++)",
+              range: range,
             },
             {
-              label: 'forof',
+              label: "forof",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'for (const ${1:item} of ${2:array}) {',
-                '\t${3:// código}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'For...of loop',
-              detail: 'for (const item of array)',
-              range: range
+                "for (const ${1:item} of ${2:array}) {",
+                "\t${3:// código}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "For...of loop",
+              detail: "for (const item of array)",
+              range: range,
             },
             {
-              label: 'forin',
+              label: "forin",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'for (const ${1:key} in ${2:object}) {',
-                '\t${3:// código}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'For...in loop',
-              detail: 'for (const key in object)',
-              range: range
+                "for (const ${1:key} in ${2:object}) {",
+                "\t${3:// código}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "For...in loop",
+              detail: "for (const key in object)",
+              range: range,
             },
             {
-              label: 'while',
+              label: "while",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'while (${1:condition}) {',
-                '\t${2:// código}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'While loop',
-              detail: 'while (condition)',
-              range: range
+                "while (${1:condition}) {",
+                "\t${2:// código}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "While loop",
+              detail: "while (condition)",
+              range: range,
             },
 
             // 🎯 FUNCIONES
             {
-              label: 'func',
+              label: "func",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'function ${1:nombre}(${2:parámetros}) {',
-                '\t${3:// código}',
-                '\treturn ${4:resultado};',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Función básica',
-              detail: 'function nombre(parámetros)',
-              range: range
+                "function ${1:nombre}(${2:parámetros}) {",
+                "\t${3:// código}",
+                "\treturn ${4:resultado};",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Función básica",
+              detail: "function nombre(parámetros)",
+              range: range,
             },
             {
-              label: 'arrow',
+              label: "arrow",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: 'const ${1:nombre} = (${2:parámetros}) => ${3:expresión};',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Arrow function',
-              detail: 'const nombre = (parámetros) => expresión',
-              range: range
+              insertText:
+                "const ${1:nombre} = (${2:parámetros}) => ${3:expresión};",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Arrow function",
+              detail: "const nombre = (parámetros) => expresión",
+              range: range,
             },
 
             // 🎯 ESTRUCTURAS DE DATOS
             {
-              label: 'arr',
+              label: "arr",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: 'const ${1:array} = [${2:elementos}];',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Array declaration',
-              detail: 'const array = [elementos]',
-              range: range
+              insertText: "const ${1:array} = [${2:elementos}];",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Array declaration",
+              detail: "const array = [elementos]",
+              range: range,
             },
             {
-              label: 'obj',
+              label: "obj",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'const ${1:objeto} = {',
-                '\t${2:propiedad}: ${3:valor}',
-                '};'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Object declaration',
-              detail: 'const objeto = { propiedad: valor }',
-              range: range
+                "const ${1:objeto} = {",
+                "\t${2:propiedad}: ${3:valor}",
+                "};",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Object declaration",
+              detail: "const objeto = { propiedad: valor }",
+              range: range,
             },
 
             // 🎯 CONDICIONALES
             {
-              label: 'if',
+              label: "if",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'if (${1:condition}) {',
-                '\t${2:// código}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'If statement',
-              detail: 'if (condition)',
-              range: range
+                "if (${1:condition}) {",
+                "\t${2:// código}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "If statement",
+              detail: "if (condition)",
+              range: range,
             },
             {
-              label: 'ifelse',
+              label: "ifelse",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: [
-                'if (${1:condition}) {',
-                '\t${2:// código}',
-                '} else {',
-                '\t${3:// código alternativo}',
-                '}'
-              ].join('\n'),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'If...else statement',
-              detail: 'if (condition) { } else { }',
-              range: range
+                "if (${1:condition}) {",
+                "\t${2:// código}",
+                "} else {",
+                "\t${3:// código alternativo}",
+                "}",
+              ].join("\n"),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "If...else statement",
+              detail: "if (condition) { } else { }",
+              range: range,
             },
 
             // 🎯 MÉTODOS DE ARRAY COMUNES
             {
-              label: 'map',
+              label: "map",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: '${1:array}.map(${2:item} => ${3:transformación});',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Array map method',
-              detail: 'array.map(item => transformación)',
-              range: range
+              insertText: "${1:array}.map(${2:item} => ${3:transformación});",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Array map method",
+              detail: "array.map(item => transformación)",
+              range: range,
             },
             {
-              label: 'filter',
+              label: "filter",
               kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: '${1:array}.filter(${2:item} => ${3:condición});',
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: 'Array filter method',
-              detail: 'array.filter(item => condición)',
-              range: range
-            }
-          ]
+              insertText: "${1:array}.filter(${2:item} => ${3:condición});",
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: "Array filter method",
+              detail: "array.filter(item => condición)",
+              range: range,
+            },
+          ],
         };
-      }
+      },
     });
 
     // Configuración JavaScript (igual que antes)
@@ -261,21 +254,21 @@ function Editor({ value, onChange, onRun }) {
     // 🎯 NUEVOS SHORTCUTS EN EL EDITOR
     // Ctrl+/ para comentar/descomentar
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
-      editor.trigger('keyboard', 'editor.action.commentLine', {});
+      editor.trigger("keyboard", "editor.action.commentLine", {});
     });
 
     // Ctrl+D para duplicar línea
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
-      editor.trigger('keyboard', 'editor.action.copyLinesDownAction', {});
+      editor.trigger("keyboard", "editor.action.copyLinesDownAction", {});
     });
 
     // Alt+Up/Down para mover líneas
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
-      editor.trigger('keyboard', 'editor.action.moveLinesUpAction', {});
+      editor.trigger("keyboard", "editor.action.moveLinesUpAction", {});
     });
 
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
-      editor.trigger('keyboard', 'editor.action.moveLinesDownAction', {});
+      editor.trigger("keyboard", "editor.action.moveLinesDownAction", {});
     });
 
     editor.focus();
@@ -314,19 +307,27 @@ function Editor({ value, onChange, onRun }) {
     cursorSmoothCaretAnimation: true,
     // 🎯 SNIPPETS
     snippetSuggestions: "top", // Mostrar snippets primero
-    tabIndex: 0
+    tabIndex: 0,
   };
 
   return (
-    <div className="h-full flex flex-col border-r border-eva-gray">
-      <div className="bg-eva-dark border-b border-eva-gray px-4 py-2 flex-shrink-0">
-        <h2 className="text-xs font-medium text-eva-light-gray flex items-center space-x-2">
-          <i className="fas fa-code text-eva-lime"></i>
-          <span>Editor</span>
-          {/* 🎯 INDICADOR DE SNIPPETS */}
-          <span className="text-xs bg-eva-purple/20 text-eva-purple px-2 py-0.5 rounded">
-            Snippets: clg, for, func, etc.
-          </span>
+    <div
+      className="h-full flex flex-col border-r theme-transition"
+      style={{ borderColor: "var(--border-subtle)" }}
+    >
+      <div
+        className="border-b px-4 py-2 flex-shrink-0 theme-transition"
+        style={{
+          backgroundColor: "var(--theme-background)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
+        <h2 className="text-xs font-medium flex items-center space-x-2 theme-transition">
+          <i
+            className="fas fa-code"
+            style={{ color: "var(--theme-secondary)" }}
+          ></i>
+          <span style={{ color: "var(--color-white)" }}>Editor</span>
         </h2>
       </div>
 
@@ -339,9 +340,12 @@ function Editor({ value, onChange, onRun }) {
           onMount={handleEditorDidMount}
           options={editorOptions}
           loading={
-            <div className="flex items-center justify-center h-full text-eva-light-gray">
+            <div
+              className="flex items-center justify-center h-full theme-transition"
+              style={{ color: "var(--color-gray-light)" }}
+            >
               <i className="fas fa-spinner fa-spin mr-2"></i>
-              Loading Monaco Editor...
+              Loading Editor...
             </div>
           }
         />
