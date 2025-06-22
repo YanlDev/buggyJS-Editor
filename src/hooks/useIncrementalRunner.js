@@ -1,52 +1,58 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
-/**
- * Runner con contexto dinámico - Las variables desaparecen cuando borras líneas
- * Comportamiento exacto de RunJS
- */
 export function useCleanRunner() {
   const [outputLines, setOutputLines] = useState({})
   const [isRunning, setIsRunning] = useState(false)
-  const [persistentContext, setPersistentContext] = useState({})
+  const timeoutRef = useRef(null) // Referencia para el timeout
 
   /**
-   * Función principal que ejecuta código con contexto dinámico
-   * Las variables solo existen si sus líneas de declaración existen
+   * Función principal que ejecuta código con contexto completo
+   * Incluye fetch, Promise, setTimeout y todas las APIs del navegador
    */
   const executeCode = useCallback(async (code) => {
     if (!code.trim()) {
       setOutputLines({})
-      setPersistentContext({})
       return
     }
 
     setIsRunning(true)
 
+    // 🛡️ TIMEOUT AUTOMÁTICO PARA PREVENIR BUCLES INFINITOS
+    const EXECUTION_TIMEOUT = 5000; // 5 segundos
+    let isTimedOut = false;
+
+    timeoutRef.current = setTimeout(() => {
+      isTimedOut = true;
+      setOutputLines({
+        1: {
+          id: 'timeout-error',
+          lineNumber: 1,
+          content: '⏰ Ejecución cancelada automáticamente: Timeout de 5 segundos excedido (posible bucle infinito)',
+          type: 'error',
+          timestamp: new Date().toLocaleTimeString('es-ES', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          }),
+          lastUpdated: Date.now()
+        }
+      });
+      setIsRunning(false);
+    }, EXECUTION_TIMEOUT);
+
     try {
       // Limpiar outputs anteriores
       setOutputLines({})
 
-      // Analizar código actual para detectar variables disponibles
-      const currentVariables = extractVariablesFromCode(code)
-
-      // Actualizar contexto persistente solo con variables que existen en el código actual
-      const updatedContext = {}
-      Object.keys(currentVariables).forEach(varName => {
-        if (persistentContext[varName] !== undefined) {
-          updatedContext[varName] = persistentContext[varName]
-        }
-      })
-
-      // Dividir código en líneas
       const lines = code.split('\n')
       const newOutputs = {}
-
-      // Variables para tracking
       const consoleOutputs = []
 
-      // Console personalizado que captura everything
+      // 🎯 CONSOLE PERSONALIZADO QUE CAPTURA TODO
       const captureConsole = {
         log: (...args) => {
+          if (isTimedOut) return; // No procesar si ya expiró
           consoleOutputs.push({
             type: 'log',
             content: formatOutput(args),
@@ -54,6 +60,7 @@ export function useCleanRunner() {
           })
         },
         error: (...args) => {
+          if (isTimedOut) return;
           consoleOutputs.push({
             type: 'error',
             content: formatOutput(args),
@@ -61,6 +68,7 @@ export function useCleanRunner() {
           })
         },
         warn: (...args) => {
+          if (isTimedOut) return;
           consoleOutputs.push({
             type: 'warn',
             content: formatOutput(args),
@@ -68,6 +76,7 @@ export function useCleanRunner() {
           })
         },
         info: (...args) => {
+          if (isTimedOut) return;
           consoleOutputs.push({
             type: 'info',
             content: formatOutput(args),
@@ -76,7 +85,9 @@ export function useCleanRunner() {
         }
       }
 
-      // Función para formatear argumentos
+      /**
+       * Formatea argumentos de console para mostrarlos correctamente
+       */
       function formatOutput(args) {
         return args.map(arg => {
           if (typeof arg === 'object' && arg !== null) {
@@ -90,13 +101,13 @@ export function useCleanRunner() {
         }).join(' ')
       }
 
-      // Crear mapa de líneas con console.xxx
+      // 🎯 MAPEAR LÍNEAS CON CONSOLE.XXX PARA MOSTRAR OUTPUTS
       const consoleLinesInfo = []
       lines.forEach((line, index) => {
         const lineNumber = index + 1
         const trimmed = line.trim()
 
-        // Detectar si la línea tiene console.xxx
+        // Detectar líneas que tienen console.log, console.error, etc.
         if (trimmed &&
           !trimmed.startsWith('//') &&
           /console\.(log|error|warn|info)\s*\(/.test(trimmed)) {
@@ -108,7 +119,7 @@ export function useCleanRunner() {
         }
       })
 
-      // Preparar código para ejecución con contexto
+      // Preparar código para ejecución (sin comentarios y líneas vacías)
       const codeToExecute = lines
         .filter(line => {
           const trimmed = line.trim()
@@ -116,50 +127,156 @@ export function useCleanRunner() {
         })
         .join('\n')
 
-      if (codeToExecute.trim()) {
-        // Crear contexto de ejecución con variables persistentes
-        const contextCode = `
-          // Inyectar variables del contexto persistente
-          ${Object.keys(updatedContext).map(key => {
-          try {
-            return `let ${key} = ${JSON.stringify(updatedContext[key])};`
-          } catch (e) {
-            return `let ${key} = updatedContext.${key};`
+      // 🌐 EJECUTAR CÓDIGO CON CONTEXTO COMPLETO (FETCH, PROMISE, ETC.)
+      if (codeToExecute.trim() && !isTimedOut) {
+        try {
+          // 🎯 CREAR FUNCIÓN CON ACCESO A TODAS LAS APIs DEL NAVEGADOR
+          const executeFunction = new Function(
+            'console',           // Console personalizado
+            'fetch',             // API fetch del navegador
+            'Promise',           // Promises para async/await
+            'setTimeout',        // setTimeout para delays
+            'setInterval',       // setInterval para timers
+            'clearTimeout',      // clearTimeout para limpiar timers
+            'clearInterval',     // clearInterval para limpiar intervals
+            'JSON',              // JSON para parsing
+            'Date',              // Date para timestamps
+            'Math',              // Math para cálculos
+            'Array',             // Array methods
+            'Object',            // Object methods
+            'String',            // String methods
+            'Number',            // Number methods
+            'Boolean',           // Boolean constructor
+            'Error',             // Error constructor
+            'RegExp',            // RegExp para expresiones regulares
+            // 🔧 WRAPPER PARA CÓDIGO DEL USUARIO CON MANEJO DE ERRORES
+            `
+            (async () => {
+              try {
+                ${codeToExecute}
+              } catch (error) {
+                console.error('Error:', error.message);
+                throw error;
+              }
+            })();
+            `
+          );
+
+          
+          await executeFunction(
+            captureConsole,                      // Tu console personalizado
+            window.fetch?.bind(window),          // fetch real del navegador
+            window.Promise,                      // Promise real
+            window.setTimeout.bind(window),      // setTimeout real
+            window.setInterval.bind(window),     // setInterval real
+            window.clearTimeout.bind(window),    // clearTimeout real
+            window.clearInterval.bind(window),   // clearInterval real
+            window.JSON,                         // JSON real
+            window.Date,                         // Date real
+            window.Math,                         // Math real
+            window.Array,                        // Array real
+            window.Object,                       // Object real
+            window.String,                       // String real
+            window.Number,                       // Number real
+            window.Boolean,                      // Boolean real
+            window.Error,                        // Error real
+            window.RegExp                        // RegExp real
+          );
+
+        } catch (executionError) {
+
+          console.error('Error en ejecución:', executionError);
+
+          if (!isTimedOut) {
+            const errorLineNumber = findFirstCodeLine(code.split('\n'));
+            newOutputs[errorLineNumber] = {
+              id: `error-${errorLineNumber}`,
+              lineNumber: errorLineNumber,
+              content: `Error: ${executionError.message}`,
+              type: 'error',
+              timestamp: new Date().toLocaleTimeString('es-ES', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }),
+              lastUpdated: Date.now()
+            };
           }
-        }).join('\n')}
-          
-          // Código del usuario
-          ${codeToExecute}
-          
-          // Capturar nuevas variables
-          const newVars = {};
-          try {
-            ${Object.keys(currentVariables).map(varName =>
-          `if (typeof ${varName} !== 'undefined') newVars.${varName} = ${varName};`
-        ).join('\n')}
-          } catch(e) {}
-          
-          return newVars;
-        `
-
-        // Ejecutar código y capturar nuevas variables
-        const executeFunction = new Function('console', 'updatedContext', contextCode)
-        const newVariables = executeFunction(captureConsole, updatedContext)
-
-        // Actualizar contexto persistente
-        setPersistentContext(newVariables)
+        }
       }
 
-      // Mapear outputs capturados a sus líneas correspondientes
-      consoleLinesInfo.forEach((lineInfo, index) => {
-        const correspondingOutput = consoleOutputs[index]
 
-        if (correspondingOutput) {
-          newOutputs[lineInfo.lineNumber] = {
-            id: `line-${lineInfo.lineNumber}`,
-            lineNumber: lineInfo.lineNumber,
-            content: correspondingOutput.content,
-            type: correspondingOutput.type,
+      if (!isTimedOut) {
+
+        clearTimeout(timeoutRef.current);
+
+        consoleLinesInfo.forEach((lineInfo, index) => {
+          const correspondingOutput = consoleOutputs[index]
+
+          if (correspondingOutput) {
+            newOutputs[lineInfo.lineNumber] = {
+              id: `line-${lineInfo.lineNumber}`,
+              lineNumber: lineInfo.lineNumber,
+              content: correspondingOutput.content,
+              type: correspondingOutput.type,
+              timestamp: new Date().toLocaleTimeString('es-ES', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }),
+              lastUpdated: Date.now()
+            }
+          }
+        })
+
+
+        if (consoleOutputs.length > consoleLinesInfo.length) {
+
+          const extraOutputs = consoleOutputs.slice(consoleLinesInfo.length)
+
+          let lastConsoleLineInLoop = null
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim()
+            if (line &&
+              !line.startsWith('//') &&
+              /console\.(log|error|warn|info)\s*\(/.test(line)) {
+              lastConsoleLineInLoop = i + 1
+              break
+            }
+          }
+
+          if (lastConsoleLineInLoop && newOutputs[lastConsoleLineInLoop]) {
+
+            const existingOutput = newOutputs[lastConsoleLineInLoop]
+            const combinedContent = [existingOutput.content]
+              .concat(extraOutputs.map(output => output.content))
+              .join('\n')
+
+            newOutputs[lastConsoleLineInLoop] = {
+              ...existingOutput,
+              content: combinedContent
+            }
+          }
+        }
+
+        setOutputLines(newOutputs)
+        setIsRunning(false)
+      }
+
+    } catch (error) {
+
+      clearTimeout(timeoutRef.current);
+
+      if (!isTimedOut) {
+        const errorLineNumber = findFirstCodeLine(code.split('\n'))
+        setOutputLines({
+          [errorLineNumber]: {
+            id: `line-${errorLineNumber}`,
+            lineNumber: errorLineNumber,
+            content: `Error: ${error.message}`,
+            type: 'error',
             timestamp: new Date().toLocaleTimeString('es-ES', {
               hour12: false,
               hour: '2-digit',
@@ -168,95 +285,14 @@ export function useCleanRunner() {
             }),
             lastUpdated: Date.now()
           }
-        }
-      })
-
-      // Manejar casos especiales como bucles que generan múltiples outputs
-      if (consoleOutputs.length > consoleLinesInfo.length) {
-        // Hay más outputs que líneas console - probablemente un bucle
-        const extraOutputs = consoleOutputs.slice(consoleLinesInfo.length)
-
-        // Encontrar la última línea con console en un bucle
-        let lastConsoleLineInLoop = null
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const line = lines[i].trim()
-          if (line &&
-            !line.startsWith('//') &&
-            /console\.(log|error|warn|info)\s*\(/.test(line)) {
-            lastConsoleLineInLoop = i + 1
-            break
-          }
-        }
-
-        if (lastConsoleLineInLoop && newOutputs[lastConsoleLineInLoop]) {
-          // Combinar outputs extra con la línea del bucle
-          const existingOutput = newOutputs[lastConsoleLineInLoop]
-          const combinedContent = [existingOutput.content]
-            .concat(extraOutputs.map(output => output.content))
-            .join('\n')
-
-          newOutputs[lastConsoleLineInLoop] = {
-            ...existingOutput,
-            content: combinedContent
-          }
-        }
+        })
+        setIsRunning(false)
       }
-
-      setOutputLines(newOutputs)
-
-    } catch (error) {
-      // Mostrar error en la primera línea con código
-      const errorLineNumber = findFirstCodeLine(code.split('\n'))
-      setOutputLines({
-        [errorLineNumber]: {
-          id: `line-${errorLineNumber}`,
-          lineNumber: errorLineNumber,
-          content: `Error: ${error.message}`,
-          type: 'error',
-          timestamp: new Date().toLocaleTimeString('es-ES', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          }),
-          lastUpdated: Date.now()
-        }
-      })
-    } finally {
-      setIsRunning(false)
     }
-  }, [persistentContext])
+  }, [])
 
   /**
-   * Extrae variables declaradas en el código actual
-   */
-  function extractVariablesFromCode(code) {
-    const variables = {}
-    const lines = code.split('\n')
-
-    lines.forEach(line => {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('//')) return
-
-      // Detectar declaraciones de variables
-      const patterns = [
-        /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g,
-        /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g
-      ]
-
-      patterns.forEach(pattern => {
-        let match
-        while ((match = pattern.exec(trimmed)) !== null) {
-          variables[match[1]] = true
-        }
-      })
-    })
-
-    return variables
-  }
-
-  /**
-   * Encuentra la primera línea con código válido
+   * Encuentra la primera línea con código válido (no comentario ni vacía)
    */
   function findFirstCodeLine(lines) {
     for (let i = 0; i < lines.length; i++) {
@@ -269,11 +305,14 @@ export function useCleanRunner() {
   }
 
   /**
-   * Limpia todos los outputs
+   * Limpia todos los outputs y cancela timeout si existe
    */
   const clearOutput = useCallback(() => {
     setOutputLines({})
-    setPersistentContext({})
+    // 🛡️ Limpiar timeout si existe
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   }, [])
 
   /**
@@ -281,26 +320,30 @@ export function useCleanRunner() {
    */
   const resetContext = useCallback(() => {
     setOutputLines({})
+    // 🛡️ Limpiar timeout si existe
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   }, [])
 
-  // Convertir a array para el componente Console
+
   const outputArray = Object.values(outputLines)
     .sort((a, b) => a.lineNumber - b.lineNumber)
 
   return {
-    // Función principal de ejecución
+
     runCode: executeCode,
 
-    // Estado
+
     output: outputArray,
     isRunning,
     hasOutput: outputArray.length > 0,
 
-    // Funciones de utilidad
+
     clearOutput,
     resetContext,
 
-    // Funciones dummy para compatibilidad con el código existente
+
     isAutoRunEnabled: false,
     triggerAutoRun: () => { },
     toggleAutoRun: () => { },

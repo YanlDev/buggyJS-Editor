@@ -4,21 +4,12 @@ import Console from "./components/Console";
 import ResizablePanels from "./components/ResizablePanels";
 import { useCleanRunner } from "./hooks/useIncrementalRunner";
 
+// En App.jsx - Shortcuts globales
 function App() {
-  // Estado del código en el editor
-  const [code, setCode] = useState('console.log("¡Bienvenido a BuggyJS!");');
+  const [code, setCode] = useState("");
 
-  // Hook del runner limpio
-  const {
-    runCode,
-    output,
-    isRunning,
-    isAutoRunEnabled,
-    hasOutput,
-    clearOutput,
-    resetContext,
-    toggleAutoRun,
-  } = useCleanRunner();
+  const { runCode, output, isRunning, hasOutput, clearOutput, resetContext } =
+    useCleanRunner();
 
   /**
    * Maneja la ejecución manual del código
@@ -32,41 +23,51 @@ function App() {
    */
   const handleCodeChange = (newCode) => {
     setCode(newCode);
-
-    // Auto-run deshabilitado por ahora
-    // if (isAutoRunEnabled) {
-    //   triggerAutoRun(newCode);
-    // }
   };
 
   /**
-   * Maneja el atajo de teclado Ctrl+Enter para ejecutar
+   * 🎯 SHORTCUTS GLOBALES DE LA APLICACIÓN
    */
-  const handleKeyDown = (e) => {
+  const handleGlobalKeyDown = (e) => {
+    // Ctrl+Enter: Ejecutar código
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       handleRunCode();
+      return;
+    }
+
+    // Ctrl+Backspace: Limpiar consola
+    if ((e.ctrlKey || e.metaKey) && e.key === "Backspace") {
+      e.preventDefault();
+      clearOutput();
+      return;
+    }
+
+
+    // Ctrl+K: Limpiar consola (alternativo)
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      clearOutput();
+      return;
+    }
+
+    // Escape: Cancelar ejecución si está corriendo
+    if (e.key === "Escape" && isRunning) {
+      e.preventDefault();
+      return;
     }
   };
 
-  // Event listener para atajos de teclado
+  // Event listener para shortcuts globales
   useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [code]);
-
-  /**
-   * Limpia output (ya no necesario un botón separado)
-   */
-  const handleClearAll = () => {
-    clearOutput();
-  };
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [code, isRunning]); // Dependencias necesarias
 
   return (
     <div className="h-screen bg-eva-darker text-white font-sans flex flex-col">
-      {/* Header simplificado */}
+      {/* Header con indicadores de shortcuts */}
       <header className="bg-eva-dark border-b border-eva-gray flex items-center justify-between flex-shrink-0">
-        {/* Lado izquierdo: Logo + Pestañas */}
         <div className="flex items-center">
           {/* Logo */}
           <div className="px-4 py-3 flex items-center space-x-3 border-r border-eva-gray">
@@ -80,24 +81,21 @@ function App() {
             <div className="px-4 py-3 bg-eva-darker border-r text-sm text-eva-light-gray border-b-2 border-eva-lime">
               untitled.js
             </div>
-            <button className="px-3 py-3 text-eva-light-gray hover:text-eva-lime hover:bg-eva-darker/50 transition-colors text-sm">
-              <i className="fas fa-plus"></i>
-            </button>
           </div>
         </div>
 
-        {/* Lado derecho: Solo el botón Run pequeño */}
+        {/* Lado derecho: Info con shortcuts */}
         <div className="flex items-center space-x-3 px-4">
-          {/* Info del lenguaje */}
+          {/* Info del lenguaje con shortcuts */}
           <div className="flex items-center space-x-2 text-xs text-eva-light-gray">
             <span>JavaScript</span>
             <span>•</span>
-            <span>UTF-8</span>
+            <span title="Ejecutar código">Ctrl+Enter</span>
             <span>•</span>
-            <span title="Press Ctrl+Enter to run code">Ctrl+Enter</span>
+            <span title="Limpiar consola">Ctrl+⌫</span>
           </div>
 
-          {/* Botón Run pequeño estilo auto-run */}
+          {/* Botón Run */}
           <button
             onClick={handleRunCode}
             disabled={isRunning}
@@ -126,19 +124,16 @@ function App() {
       {/* Paneles redimensionables */}
       <div className="flex-1 min-h-0">
         <ResizablePanels>
-          {/* Panel Editor */}
           <Editor
             value={code}
             onChange={handleCodeChange}
             onRun={handleRunCode}
           />
-
-          {/* Panel Console */}
           <Console
             output={output}
             onClear={clearOutput}
             isRunning={isRunning}
-            isAutoRunEnabled={isAutoRunEnabled}
+            isAutoRunEnabled={false}
           />
         </ResizablePanels>
       </div>
