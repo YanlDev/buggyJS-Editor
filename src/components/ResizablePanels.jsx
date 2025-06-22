@@ -53,6 +53,7 @@ export const ResizablePanels = ({ children }) => {
       <div
         style={{
           width: `${leftWidth}%`,
+          height: "100%",
           backgroundColor: "var(--color-background)",
         }}
         className="theme-transition"
@@ -62,7 +63,7 @@ export const ResizablePanels = ({ children }) => {
 
       {/* Divisor redimensionable */}
       <div
-        className={`w-1 cursor-col-resize transition-all duration-200 theme-transition ${
+        className={`w-1 h-full cursor-col-resize transition-all duration-200 theme-transition ${
           isDragging ? "theme-glow" : ""
         }`}
         style={{
@@ -94,6 +95,7 @@ export const ResizablePanels = ({ children }) => {
       <div
         style={{
           width: `${100 - leftWidth}%`,
+          height: "100%",
           backgroundColor: "var(--color-gray)",
         }}
         className="theme-transition"
