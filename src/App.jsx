@@ -6,6 +6,7 @@ import ThemeSelector from "./components/ThemeSelector";
 import { useCleanRunner } from "./hooks/useIncrementalRunner";
 import { useTheme } from "./hooks/useTheme";
 import "./styles/themes.css";
+import logoImage from "./img/LogoEditorV2.png";
 
 function App() {
   const [code, setCode] = useState("");
@@ -78,17 +79,11 @@ function App() {
             style={{ borderColor: "var(--border-subtle)" }}
           >
             <div className="flex items-center space-x-2">
-              <h1
-                className="text-lg font-semibold font-mono "
-                style={{
-                  background: "var(--theme-gradient-primary)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                BuggyJS
-              </h1>
+              <img
+                src={logoImage}
+                alt="EzJS Logo"
+                className="h-8 w-auto rounded-sm"
+              />
             </div>
           </div>
 
@@ -106,9 +101,9 @@ function App() {
               <div className="flex items-center space-x-2">
                 <i
                   className="fab fa-js-square text-xs"
-                  style={{ color: "var(--theme-accent)" }}
+                  style={{ color: "yellow" }}
                 ></i>
-                <span>untitled.js</span>
+                <span>index.js</span>
               </div>
             </div>
           </div>
