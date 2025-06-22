@@ -18,7 +18,7 @@ export function useCleanRunner() {
     setIsRunning(true)
 
     // 🛡️ TIMEOUT AUTOMÁTICO PARA PREVENIR BUCLES INFINITOS
-    const EXECUTION_TIMEOUT = 5000; // 5 segundos
+    const EXECUTION_TIMEOUT = 15000; // 🔧 AUMENTADO A 15 segundos para APIs
     let isTimedOut = false;
 
     timeoutRef.current = setTimeout(() => {
@@ -27,7 +27,7 @@ export function useCleanRunner() {
         1: {
           id: 'timeout-error',
           lineNumber: 1,
-          content: '⏰ Ejecución cancelada automáticamente: Timeout de 5 segundos excedido (posible bucle infinito)',
+          content: '⏰ Ejecución cancelada automáticamente: Timeout de 15 segundos excedido (posible bucle infinito)',
           type: 'error',
           timestamp: new Date().toLocaleTimeString('es-ES', {
             hour12: false,
@@ -46,78 +46,142 @@ export function useCleanRunner() {
       setOutputLines({})
 
       const lines = code.split('\n')
-      const newOutputs = {}
       const consoleOutputs = []
 
-      // 🎯 CONSOLE PERSONALIZADO QUE CAPTURA TODO
+      // 🔄 FUNCIÓN PARA ACTUALIZAR OUTPUTS EN TIEMPO REAL
+      function updateOutputsInRealTime() {
+        const currentOutputs = {};
+
+        consoleOutputs.forEach((output, index) => {
+          currentOutputs[index + 1] = {
+            id: `console-${index}`,
+            lineNumber: index + 1,
+            content: output.content,
+            type: output.type,
+            timestamp: output.timestamp,
+            lastUpdated: Date.now()
+          };
+        });
+
+        setOutputLines(currentOutputs);
+      }
+
+      // 🎯 CONSOLE PERSONALIZADO MEJORADO QUE CAPTURA TODO
       const captureConsole = {
         log: (...args) => {
-          if (isTimedOut) return; // No procesar si ya expiró
-          consoleOutputs.push({
+          if (isTimedOut) return;
+
+          const output = {
             type: 'log',
             content: formatOutput(args),
-            order: consoleOutputs.length
-          })
+            order: consoleOutputs.length,
+            timestamp: new Date().toLocaleTimeString('es-ES', {
+              hour12: false,
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          };
+
+          consoleOutputs.push(output);
+
+          // 🔥 ACTUALIZAR UI INMEDIATAMENTE
+          updateOutputsInRealTime();
         },
+
         error: (...args) => {
           if (isTimedOut) return;
-          consoleOutputs.push({
+
+          const output = {
             type: 'error',
             content: formatOutput(args),
-            order: consoleOutputs.length
-          })
+            order: consoleOutputs.length,
+            timestamp: new Date().toLocaleTimeString('es-ES', {
+              hour12: false,
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          };
+
+          consoleOutputs.push(output);
+          updateOutputsInRealTime();
         },
+
         warn: (...args) => {
           if (isTimedOut) return;
-          consoleOutputs.push({
+
+          const output = {
             type: 'warn',
             content: formatOutput(args),
-            order: consoleOutputs.length
-          })
+            order: consoleOutputs.length,
+            timestamp: new Date().toLocaleTimeString('es-ES', {
+              hour12: false,
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          };
+
+          consoleOutputs.push(output);
+          updateOutputsInRealTime();
         },
+
         info: (...args) => {
           if (isTimedOut) return;
-          consoleOutputs.push({
+
+          const output = {
             type: 'info',
             content: formatOutput(args),
-            order: consoleOutputs.length
-          })
+            order: consoleOutputs.length,
+            timestamp: new Date().toLocaleTimeString('es-ES', {
+              hour12: false,
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          };
+
+          consoleOutputs.push(output);
+          updateOutputsInRealTime();
         }
       }
 
       /**
-       * Formatea argumentos de console para mostrarlos correctamente
-       */
+      * 🔧 NUEVA VERSIÓN: Captura objetos RAW sin stringify
+      * Para que el console expandible pueda trabajar con objetos reales
+      */
       function formatOutput(args) {
-        return args.map(arg => {
-          if (typeof arg === 'object' && arg !== null) {
-            try {
-              return JSON.stringify(arg, null, 2)
-            } catch (e) {
-              return String(arg)
-            }
+        // 🎯 Si solo hay un argumento y es un objeto/array, devolverlo raw
+        if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+          return args[0]; // Objeto crudo para el console expandible
+        }
+
+        // 🎯 Si hay múltiples argumentos con texto + objeto
+        if (args.length === 2 && typeof args[0] === 'string' && typeof args[1] === 'object' && args[1] !== null) {
+          return `${args[0]} ${JSON.stringify(args[1], null, 2)}`;
+        }
+
+        // 🎯 Para otros casos, mantener comportamiento original
+        return args.map((arg, index) => {
+          if (typeof arg === 'string') {
+            return arg;
           }
-          return String(arg)
-        }).join(' ')
+
+          if (typeof arg !== 'object' || arg === null) {
+            return String(arg);
+          }
+
+          // Para objetos, usar representación compacta en múltiples argumentos
+          if (Array.isArray(arg)) {
+            return `Array(${arg.length}) [...]`;
+          } else {
+            const keys = Object.keys(arg);
+            return `Object{${keys.length} props}`;
+          }
+        }).join(' ');
       }
 
-      // 🎯 MAPEAR LÍNEAS CON CONSOLE.XXX PARA MOSTRAR OUTPUTS
-      const consoleLinesInfo = []
-      lines.forEach((line, index) => {
-        const lineNumber = index + 1
-        const trimmed = line.trim()
-
-        // Detectar líneas que tienen console.log, console.error, etc.
-        if (trimmed &&
-          !trimmed.startsWith('//') &&
-          /console\.(log|error|warn|info)\s*\(/.test(trimmed)) {
-          consoleLinesInfo.push({
-            lineNumber: lineNumber,
-            lineContent: trimmed,
-            expectedOutputIndex: consoleLinesInfo.length
-          })
-        }
-      })
 
       // Preparar código para ejecución (sin comentarios y líneas vacías)
       const codeToExecute = lines
@@ -128,6 +192,7 @@ export function useCleanRunner() {
         .join('\n')
 
       // 🌐 EJECUTAR CÓDIGO CON CONTEXTO COMPLETO (FETCH, PROMISE, ETC.)
+      // 🔧 VERSIÓN MEJORADA PARA ASYNC/AWAIT
       if (codeToExecute.trim() && !isTimedOut) {
         try {
           // 🎯 CREAR FUNCIÓN CON ACCESO A TODAS LAS APIs DEL NAVEGADOR
@@ -149,20 +214,24 @@ export function useCleanRunner() {
             'Boolean',           // Boolean constructor
             'Error',             // Error constructor
             'RegExp',            // RegExp para expresiones regulares
-            // 🔧 WRAPPER PARA CÓDIGO DEL USUARIO CON MANEJO DE ERRORES
+            // 🔧 WRAPPER MEJORADO PARA CÓDIGO DEL USUARIO CON MANEJO DE ASYNC
             `
-            (async () => {
+            return (async () => {
               try {
                 ${codeToExecute}
+                
+                // 🕐 ESPERAR UN POCO MÁS para operaciones async pendientes
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
               } catch (error) {
-                console.error('Error:', error.message);
+                console.error('Error en ejecución:', error.message);
                 throw error;
               }
             })();
             `
           );
 
-          
+          // 🚀 EJECUTAR Y ESPERAR A QUE TERMINE COMPLETAMENTE
           await executeFunction(
             captureConsole,                      // Tu console personalizado
             window.fetch?.bind(window),          // fetch real del navegador
@@ -183,98 +252,44 @@ export function useCleanRunner() {
             window.RegExp                        // RegExp real
           );
 
-        } catch (executionError) {
+          // 🕐 ESPERAR UN POCO MÁS para asegurar que todos los console.log se capturen
+          await new Promise(resolve => setTimeout(resolve, 200));
 
+        } catch (executionError) {
           console.error('Error en ejecución:', executionError);
 
           if (!isTimedOut) {
-            const errorLineNumber = findFirstCodeLine(code.split('\n'));
-            newOutputs[errorLineNumber] = {
-              id: `error-${errorLineNumber}`,
-              lineNumber: errorLineNumber,
-              content: `Error: ${executionError.message}`,
+            consoleOutputs.push({
               type: 'error',
+              content: `Error: ${executionError.message}`,
+              order: consoleOutputs.length,
               timestamp: new Date().toLocaleTimeString('es-ES', {
                 hour12: false,
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
-              }),
-              lastUpdated: Date.now()
-            };
+              })
+            });
+            updateOutputsInRealTime();
           }
         }
       }
 
-
       if (!isTimedOut) {
-
+        // Limpiar timeout
         clearTimeout(timeoutRef.current);
-
-        consoleLinesInfo.forEach((lineInfo, index) => {
-          const correspondingOutput = consoleOutputs[index]
-
-          if (correspondingOutput) {
-            newOutputs[lineInfo.lineNumber] = {
-              id: `line-${lineInfo.lineNumber}`,
-              lineNumber: lineInfo.lineNumber,
-              content: correspondingOutput.content,
-              type: correspondingOutput.type,
-              timestamp: new Date().toLocaleTimeString('es-ES', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              }),
-              lastUpdated: Date.now()
-            }
-          }
-        })
-
-
-        if (consoleOutputs.length > consoleLinesInfo.length) {
-
-          const extraOutputs = consoleOutputs.slice(consoleLinesInfo.length)
-
-          let lastConsoleLineInLoop = null
-          for (let i = lines.length - 1; i >= 0; i--) {
-            const line = lines[i].trim()
-            if (line &&
-              !line.startsWith('//') &&
-              /console\.(log|error|warn|info)\s*\(/.test(line)) {
-              lastConsoleLineInLoop = i + 1
-              break
-            }
-          }
-
-          if (lastConsoleLineInLoop && newOutputs[lastConsoleLineInLoop]) {
-
-            const existingOutput = newOutputs[lastConsoleLineInLoop]
-            const combinedContent = [existingOutput.content]
-              .concat(extraOutputs.map(output => output.content))
-              .join('\n')
-
-            newOutputs[lastConsoleLineInLoop] = {
-              ...existingOutput,
-              content: combinedContent
-            }
-          }
-        }
-
-        setOutputLines(newOutputs)
-        setIsRunning(false)
+        setIsRunning(false);
       }
 
     } catch (error) {
-
+      // Limpiar timeout
       clearTimeout(timeoutRef.current);
 
       if (!isTimedOut) {
-        const errorLineNumber = findFirstCodeLine(code.split('\n'))
         setOutputLines({
-          [errorLineNumber]: {
-            id: `line-${errorLineNumber}`,
-            lineNumber: errorLineNumber,
+          1: {
+            id: 'line-1',
+            lineNumber: 1,
             content: `Error: ${error.message}`,
             type: 'error',
             timestamp: new Date().toLocaleTimeString('es-ES', {
@@ -285,24 +300,11 @@ export function useCleanRunner() {
             }),
             lastUpdated: Date.now()
           }
-        })
-        setIsRunning(false)
+        });
+        setIsRunning(false);
       }
     }
   }, [])
-
-  /**
-   * Encuentra la primera línea con código válido (no comentario ni vacía)
-   */
-  function findFirstCodeLine(lines) {
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim()
-      if (trimmed && !trimmed.startsWith('//')) {
-        return i + 1
-      }
-    }
-    return 1
-  }
 
   /**
    * Limpia todos los outputs y cancela timeout si existe
@@ -326,24 +328,24 @@ export function useCleanRunner() {
     }
   }, [])
 
-
+  // Convertir outputLines a array ordenado
   const outputArray = Object.values(outputLines)
     .sort((a, b) => a.lineNumber - b.lineNumber)
 
   return {
-
+    // Función principal
     runCode: executeCode,
 
-
+    // Estado de outputs
     output: outputArray,
     isRunning,
     hasOutput: outputArray.length > 0,
 
-
+    // Funciones de control
     clearOutput,
     resetContext,
 
-
+    // Compatibilidad con versión anterior
     isAutoRunEnabled: false,
     triggerAutoRun: () => { },
     toggleAutoRun: () => { },

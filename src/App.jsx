@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import Editor from "./components/Editor";
-import Console from "./components/Console";
+import ExpandableConsole from "./components/ExpandableConsole";
 import ResizablePanels from "./components/ResizablePanels";
 import ThemeSelector from "./components/ThemeSelector";
 import { useCleanRunner } from "./hooks/useIncrementalRunner";
 import { useTheme } from "./hooks/useTheme";
-import "./styles/themes.css"; 
+import "./styles/themes.css";
 
 function App() {
   const [code, setCode] = useState("");
@@ -67,7 +67,6 @@ function App() {
       clearOutput();
       return;
     }
-
 
     // Escape: Cancelar ejecución si está corriendo O cerrar theme selector
     if (e.key === "Escape") {
@@ -159,7 +158,9 @@ function App() {
             onClick={handleRunCode}
             disabled={isRunning}
             className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all  ${
-              isRunning ? "bg-green-600 opacity-50 cursor-not-allowed" : "bg-green-600 hover:scale-105"
+              isRunning
+                ? "bg-green-600 opacity-50 cursor-not-allowed"
+                : "bg-green-600 hover:scale-105"
             }`}
             title="Run code (Ctrl+Enter)"
           >
@@ -213,11 +214,10 @@ function App() {
             onRun={handleRunCode}
             onMonacoMount={registerMonaco} // 🎨 Pasamos la función para registrar Monaco
           />
-          <Console
+          <ExpandableConsole
             output={output}
             onClear={clearOutput}
             isRunning={isRunning}
-            isAutoRunEnabled={false}
           />
         </ResizablePanels>
       </div>
