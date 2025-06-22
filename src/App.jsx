@@ -2,30 +2,29 @@ import { useState, useEffect } from "react";
 import Editor from "./components/Editor";
 import Console from "./components/Console";
 import ResizablePanels from "./components/ResizablePanels";
-import { useIncrementalRunner } from "./hooks/useIncrementalRunner";
+import { useCleanRunner } from "./hooks/useIncrementalRunner";
 
 function App() {
   // Estado del código en el editor
   const [code, setCode] = useState('console.log("¡Bienvenido a BuggyJS!");');
 
-  // Hook incremental limpio
+  // Hook del runner limpio
   const {
+    runCode,
     output,
     isRunning,
     isAutoRunEnabled,
     hasOutput,
-    runIncremental,
-    triggerAutoRun,
     clearOutput,
     resetContext,
     toggleAutoRun,
-  } = useIncrementalRunner();
+  } = useCleanRunner();
 
   /**
    * Maneja la ejecución manual del código
    */
   const handleRunCode = async () => {
-    await runIncremental(code, true); // true = manual (ejecuta todo)
+    await runCode(code);
   };
 
   /**
@@ -34,10 +33,10 @@ function App() {
   const handleCodeChange = (newCode) => {
     setCode(newCode);
 
-    // Auto-run automático si está habilitado
-    if (isAutoRunEnabled) {
-      triggerAutoRun(newCode);
-    }
+    // Auto-run deshabilitado por ahora
+    // if (isAutoRunEnabled) {
+    //   triggerAutoRun(newCode);
+    // }
   };
 
   /**
@@ -57,11 +56,10 @@ function App() {
   }, [code]);
 
   /**
-   * Limpia output y resetea contexto
+   * Limpia output (ya no necesario un botón separado)
    */
   const handleClearAll = () => {
     clearOutput();
-    resetContext();
   };
 
   return (
@@ -88,7 +86,7 @@ function App() {
           </div>
         </div>
 
-        {/* Lado derecho: Controles simplificados */}
+        {/* Lado derecho: Solo el botón Run pequeño */}
         <div className="flex items-center space-x-3 px-4">
           {/* Info del lenguaje */}
           <div className="flex items-center space-x-2 text-xs text-eva-light-gray">
@@ -99,47 +97,16 @@ function App() {
             <span title="Press Ctrl+Enter to run code">Ctrl+Enter</span>
           </div>
 
-          {/* Toggle Auto-Run simple */}
-          <div className="flex items-center space-x-2 border-l border-eva-gray pl-3">
-            <span className="text-xs text-eva-light-gray">Auto-Run:</span>
-            <button
-              onClick={toggleAutoRun}
-              className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all ${
-                isAutoRunEnabled
-                  ? "bg-eva-lime/20 text-eva-lime border border-eva-lime/30"
-                  : "bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray"
-              }`}
-              title={`Auto-run is ${isAutoRunEnabled ? "enabled" : "disabled"}`}
-            >
-              <i
-                className={`fas fa-bolt ${
-                  isAutoRunEnabled ? "text-eva-lime" : "text-eva-light-gray"
-                }`}
-              ></i>
-              <span>{isAutoRunEnabled ? "ON" : "OFF"}</span>
-            </button>
-          </div>
-
-          {/* Botón Clear Context */}
-          <button
-            onClick={handleClearAll}
-            className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all bg-eva-gray text-eva-light-gray border border-eva-gray hover:border-eva-light-gray hover:text-eva-warning"
-            title="Clear output and reset variables"
-          >
-            <i className="fas fa-broom text-xs"></i>
-            <span className="hidden lg:inline">Reset</span>
-          </button>
-
-          {/* Botón Run Manual */}
+          {/* Botón Run pequeño estilo auto-run */}
           <button
             onClick={handleRunCode}
             disabled={isRunning}
-            className={`px-4 py-2 rounded font-medium transition-all flex items-center space-x-2 text-sm ${
+            className={`flex items-center space-x-1 px-2 py-1 rounded text-xs font-medium transition-all ${
               isRunning
                 ? "bg-eva-light-gray text-eva-gray cursor-not-allowed"
                 : "bg-eva-lime hover:bg-eva-lime/90 text-eva-dark hover:scale-105"
             }`}
-            title="Run all code manually (Ctrl+Enter)"
+            title="Run code (Ctrl+Enter)"
           >
             <i
               className={`fas ${
